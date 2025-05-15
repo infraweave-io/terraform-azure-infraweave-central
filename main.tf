@@ -201,6 +201,59 @@ resource "azapi_resource" "get_project_map_udf" {
   schema_validation_enabled = false
 }
 
+locals {
+  project_items = [
+    for project in var.all_workload_projects : {
+      PK          = "PROJECTS"
+      SK          = "PROJECT#${project.project_id}"
+      project_id  = project.project_id
+      name        = project.name
+      description = project.description
+      regions     = project.regions
+      repositories = concat(
+        [
+          for repo in project.github_repos_deploy : {
+            git_provider    = "github"
+            git_url         = "https://github.com"
+            repository_path = repo
+            type            = "webhook"
+          }
+        ],
+        [
+          for repo in project.github_repos_oidc : {
+            git_provider    = "github"
+            git_url         = "https://github.com"
+            repository_path = repo
+            type            = "oidc"
+          }
+        ]
+      )
+    }
+  ]
+}
+
+resource "azapi_resource" "get_all_projects_udf" {
+  type      = "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers/userDefinedFunctions@2022-05-15"
+  parent_id = azurerm_cosmosdb_sql_container.configs.id
+  name      = "getAllProjects"
+
+  body = {
+    properties = {
+      resource = {
+        id   = "getAllProjects"
+        body = <<JS
+function getAllProjects() {
+  return ${jsonencode(local.project_items)};
+}
+JS
+      }
+    }
+  }
+
+  # Disable the built-in schema check since azapi doesn’t know about this child type
+  schema_validation_enabled = false
+}
+
 resource "azurerm_storage_account" "storage" {
   name                     = "c${local.proj_supershort}${local.region_short}${var.environment}" # 24 chars limit (1 + 11 for subscription, 4 for region => 8 for env)
   resource_group_name      = azurerm_resource_group.rg.name
