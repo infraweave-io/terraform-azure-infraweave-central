@@ -23,7 +23,7 @@ tables = {
 buckets = {
     'modules': os.environ.get('MODULE_S3_BUCKET'),
     'policies': os.environ.get('POLICY_S3_BUCKET'),
-    'changerecords': os.environ.get('CHANGE_RECORD_S3_BUCKET'),
+    'change_records': os.environ.get('CHANGE_RECORD_S3_BUCKET'),
     'providers':     os.environ.get('PROVIDERS_S3_BUCKET'),
 }
 
@@ -376,7 +376,7 @@ def upload_file_base64(req: func.HttpRequest) -> func.HttpResponse:
     )
 
     payload = req_body.get('data')
-    container_name = payload.get('bucket_name').replace('_', '')
+    container_name = payload.get('bucket_name')
     container_name = buckets[container_name]
     base64_body = payload.get('base64_content')
     blob_name = payload.get('key')
